@@ -36,7 +36,9 @@ fun MatchVideoTab(matchId: Int) {
     // ViewModel과 상태 초기화
     val videoViewModel: VideoViewModel = viewModel()
     val videoUiState by videoViewModel.videoUiState.collectAsState()
-
+    val isLoading by videoViewModel.isLoading.collectAsState()
+    val error by videoViewModel.error.collectAsState()
+    
     var selectedQuarter by remember { mutableStateOf("1 쿼터") }
     var expanded by remember { mutableStateOf(false) }
     var showAddSheet by remember { mutableStateOf(false) }
@@ -46,6 +48,32 @@ fun MatchVideoTab(matchId: Int) {
     var editingHighlight by remember { mutableStateOf(HighlightUiState()) }
     var deleteVideoId by remember { mutableStateOf(-1) }
     
+    // 로딩 다이얼로그 상태
+    var showLoadingDialog by remember { mutableStateOf(false) }
+    var loadingMessage by remember { mutableStateOf("") }
+    var isLoadingVideo by remember { mutableStateOf(true) }
+
+    // 로딩 상태 변경 감지
+    LaunchedEffect(isLoading) {
+        if (isLoading) {
+            // 영상 업로드나 하이라이트 추출 중에만 로딩 다이얼로그 표시
+            if (loadingMessage.isNotEmpty()) {
+                showLoadingDialog = true
+            }
+        } else {
+            showLoadingDialog = false
+            isLoadingVideo = true
+        }
+    }
+
+    // 에러 상태 변경 감지
+    LaunchedEffect(error) {
+        error?.let {
+            showLoadingDialog = false
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     // 쿼터 옵션 계산
     val quarterOptions = remember(videoUiState.totalQuarters) {
         (1..videoUiState.totalQuarters).map { "$it 쿼터" }
@@ -64,6 +92,7 @@ fun MatchVideoTab(matchId: Int) {
     // 초기 데이터 로드
     LaunchedEffect(Unit) {
         Log.d("MatchVideoTab", "🔄 초기 데이터 로드 시작")
+        loadingMessage = ""  // 초기 로드 시에는 로딩 메시지 비우기
         videoViewModel.getMatchVideos(matchId)
     }
     
@@ -191,13 +220,22 @@ fun MatchVideoTab(matchId: Int) {
 
             Log.d("MatchVideoTab", "🚀 영상 업로드 시작 → matchId=$matchId, quarter=$quarterNumber")
 
-            videoViewModel.uploadQuarterVideo(
-                context = context,
-                file = file,
-                matchId = matchId,
-                quarterNumber = quarterNumber,
-                duration = duration
-            )
+            showLoadingDialog = true
+            isLoadingVideo = true
+            loadingMessage = "영상을 업로드하는 중입니다..."
+
+            coroutineScope.launch {
+                videoViewModel.uploadQuarterVideo(
+                    context = context,
+                    file = file,
+                    matchId = matchId,
+                    quarterNumber = quarterNumber,
+                    duration = duration
+                )
+                // 하이라이트 추출 시작
+                isLoadingVideo = false
+                loadingMessage = "하이라이트를 추출하는 중입니다..."
+            }
         } ?: Log.w("MatchVideoTab", "⛔ 영상 URI가 null입니다.")
     }
 
@@ -461,6 +499,17 @@ fun MatchVideoTab(matchId: Int) {
                     Text("취소")
                 }
             }
+        )
+    }
+
+    // 로딩 다이얼로그
+    if (showLoadingDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text("처리 중") },
+            text = { Text(loadingMessage) },
+            confirmButton = { },
+            dismissButton = { }
         )
     }
 }
