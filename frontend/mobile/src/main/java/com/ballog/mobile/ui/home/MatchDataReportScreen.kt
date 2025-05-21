@@ -51,11 +51,15 @@ fun MatchDataReportScreen(
     }
 
     val conclusion = aiRecommend.conclusion
-    val analysis = aiRecommend.analysis
+    val heatmapAnalysis = aiRecommend.heatmapAnalysis
+    val sprintAnalysis = aiRecommend.sprintAnalysis
+    val speedAnalysis = aiRecommend.speedAnalysis
+    val staminaAnalysis = aiRecommend.staminaAnalysis
     val similarPlayerName = aiRecommend.recommendedPlayer?.name
     val similarPlayerPosition = aiRecommend.recommendedPlayer?.position
     val style = aiRecommend.recommendedPlayer?.style
     val reason = aiRecommend.recommendedPlayer?.reason
+    val train = aiRecommend.recommendedPlayer?.train
     val imageUrl = aiRecommend.recommendedPlayer?.imageUrl
 
     Column(
@@ -64,7 +68,7 @@ fun MatchDataReportScreen(
             .background(Color.White)
     ) {
         TopNavItem(
-            title = "경기 분석 레포트",
+            title = "플레이스타일 분석 레포트",
             type = TopNavType.DETAIL_WITH_BACK,
             onBackClick = onBack,
         )
@@ -74,27 +78,98 @@ fun MatchDataReportScreen(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            // 플레이스타일 요약
-            Text(
-                text = "${nickname}님의 플레이스타일은...",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Primary,
-                fontFamily = pretendard,
-                modifier = Modifier.padding(start = 24.dp, bottom = 2.dp)
+            // 매치 데이터 분석 요약
+            Row(
+                modifier = Modifier
+                    .padding(start = 24.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 결론 부분
+                Text(
+                    text = "${conclusion} ",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Primary,
+                    fontFamily = pretendard
+                )
+                // nickname 부분
+                Text(
+                    text = nickname,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    fontFamily = pretendard
+                )
+            }
+
+            // 구분선
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .height(1.dp)
+                    .background(Gray.Gray300)
+                    .padding(start = 24.dp, bottom = 8.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = conclusion.toString(),
-                fontSize = 20.sp,
+                text = "히트맵 분석 결과",
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Gray.Gray700,
                 fontFamily = pretendard,
-                modifier = Modifier.padding(start = 24.dp, bottom = 4.dp)
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            Text(
+                text = heatmapAnalysis,
+                fontSize = 14.sp,
+                color = Gray.Gray500,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = analysis.toString(),
+                text = "스프린트 분석 결과",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Gray.Gray700,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            Text(
+                text = sprintAnalysis,
+                fontSize = 14.sp,
+                color = Gray.Gray500,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "스피드 분석 결과",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Gray.Gray700,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            Text(
+                text = speedAnalysis,
+                fontSize = 14.sp,
+                color = Gray.Gray500,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "체력 분석 결과",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Gray.Gray700,
+                fontFamily = pretendard,
+                modifier = Modifier.padding(start = 24.dp, bottom = 8.dp)
+            )
+            Text(
+                text = staminaAnalysis,
                 fontSize = 14.sp,
                 color = Gray.Gray500,
                 fontFamily = pretendard,
@@ -103,7 +178,7 @@ fun MatchDataReportScreen(
             // 비슷한 선수 카드
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "${nickname}님과 비슷한 프로 축구 선수",
+                text = "유사한 스타일의 선수",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Gray.Gray700,
@@ -181,23 +256,38 @@ fun MatchDataReportScreen(
                         text = style.toString(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Black,
+                        color = Gray.Gray700,
                         fontFamily = pretendard,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
+//                    Spacer(modifier = Modifier.height(8.dp))
+//                    Text(
+//                        text = "유사점",
+//                        fontSize = 14.sp,
+//                        color = Gray.Gray500,
+//                        fontFamily = pretendard
+//                    )
+//                    Spacer(modifier = Modifier.height(4.dp))
+//                    Text(
+//                        text = reason.toString(),
+//                        fontSize = 12.sp,
+//                        fontWeight = FontWeight.Medium,
+//                        color = Gray.Gray700,
+//                        fontFamily = pretendard
+//                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "유사점",
+                        text = "훈련 방향",
                         fontSize = 14.sp,
                         color = Gray.Gray500,
                         fontFamily = pretendard
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = reason.toString(),
+                        text = train.toString(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = Color.Black,
+                        color = Gray.Gray700,
                         fontFamily = pretendard
                     )
                 }

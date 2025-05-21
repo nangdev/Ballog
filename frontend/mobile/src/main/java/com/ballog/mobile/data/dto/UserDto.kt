@@ -51,11 +51,15 @@ data class RecommendedPlayer(
     val position: String,
     val style: String,
     val reason: String,
+    val train: String,
     val imageUrl: String
 )
 
 data class AiRecommendDto(
     val conclusion: String,
-    val analysis: String,
+    val heatmapAnalysis: String,
+    val sprintAnalysis: String,
+    val speedAnalysis: String,
+    val staminaAnalysis: String,
     val recommendedPlayer: RecommendedPlayer
 )

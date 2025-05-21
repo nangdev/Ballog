@@ -16,7 +16,7 @@ import com.ballog.mobile.ui.theme.Gray
 import com.ballog.mobile.ui.theme.pretendard
 
 /**
- * bars: 최근 경기 데이터. 값이 true/false면 최근 경기만 색상, 나머지는 회색. 값이 Float이면 0~1로 길이 조절.
+ * bars: 최근 매치 데이터. 값이 true/false면 최근 경기만 색상, 나머지는 회색. 값이 Float이면 0~1로 길이 조절.
  * bars.size < 5면 나머지는 빈 바(짧은 회색)로 채움.
  */
 @Composable

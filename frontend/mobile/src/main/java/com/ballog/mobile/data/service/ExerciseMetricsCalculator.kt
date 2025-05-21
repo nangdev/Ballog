@@ -2,6 +2,7 @@ package com.ballog.mobile.data.service
 
 import android.content.Context
 import android.util.Log
+import com.ballog.mobile.data.dto.HeatMapDto
 import com.ballog.mobile.data.model.GpsPoint
 import com.ballog.mobile.data.repository.MatchRepository
 
@@ -49,7 +50,7 @@ class ExerciseMetricsCalculator(
         return gameSide
     }
 
-    fun calculateHeatmap(gpsPoints: List<GpsPoint>): List<List<Int>> {
+    fun calculateHeatmap(gpsPoints: List<GpsPoint>): HeatMapDto {
         val ROWS = 16
         val COLS = 10
 
@@ -58,11 +59,13 @@ class ExerciseMetricsCalculator(
 
         if (gpsPoints.isEmpty()) {
             Log.i(TAG, "GPS 포인트가 없습니다. 빈 히트맵 반환")
-            return grid.map { it.toList() }
+            return HeatMapDto(grid.map { it.toList() },
+                    gameSide = "left"
+                )
         }
 
         // 게임 진영 감지 및 로깅
-        val gameSide = detectGameSide(gpsPoints)
+        val gameSide = if(detectGameSide(gpsPoints).toString() == "LEFT") "left" else "right"
         Log.i(TAG, "히트맵 생성 시작 - 감지된 진영: $gameSide")
 
         // Min-Max 정규화 사용
@@ -176,6 +179,9 @@ class ExerciseMetricsCalculator(
 
         Log.i(TAG, "히트맵 생성 완료: ${ROWS}x${COLS} 그리드, 채워진 셀: $filledCells/$totalCells (${filledPercent}%)")
 
-        return grid.map { it.toList() }
+        return HeatMapDto(
+                heatMap = grid.map { it.toList() },
+                gameSide = gameSide.toString()
+            )
     }
 }

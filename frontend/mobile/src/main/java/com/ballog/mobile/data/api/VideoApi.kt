@@ -9,7 +9,7 @@ import okhttp3.RequestBody
 
 interface VideoApi {
 
-    // 1. 경기 영상 조회
+    // 1. 매치 영상 조회
     @GET("v1/videos/{matchId}")
     suspend fun getMatchVideos(
         @Header("Authorization") token: String,

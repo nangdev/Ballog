@@ -79,7 +79,7 @@ fun MatchCard(
 fun MatchCardPreview() {
     BallogTheme {
         MatchCard(
-            timeLabel = "경기 시작시간",
+            timeLabel = "매치 시작시간",
             startTime = "15:00:00",
             endTime = "16:30:00",
             matchName = "잠실 올림픽 공식 풋살 경기장"

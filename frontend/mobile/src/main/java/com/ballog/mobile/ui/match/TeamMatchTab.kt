@@ -128,7 +128,7 @@ fun TeamMatchTab(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "경기 일정이 없습니다",
+                                text = "매치 일정이 없습니다",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Medium,
                                 fontFamily = pretendard,
@@ -139,7 +139,7 @@ fun TeamMatchTab(
                     } else {
                         filteredMatches.forEach { match ->
                             MatchCard(
-                                timeLabel = "경기 시간",
+                                timeLabel = "매치 시간",
                                 startTime = match.startTime,
                                 endTime = match.endTime,
                                 matchName = match.matchName,

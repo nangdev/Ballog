@@ -47,7 +47,8 @@ data class ParticipantDto(
 data class QuarterDto(
     val quarterNumber: Int,
     val reportData: ReportDataDto,
-    val matchName: String
+    val matchName: String,
+    val matchSide: String
 )
 
 data class ReportDataDto(
@@ -74,4 +75,9 @@ data class DayMatchesRequest(
 
 data class DayMatchesResponse(
     val matchList: List<MatchItemDto>
+)
+
+data class HeatMapDto(
+    val heatMap: List<List<Int>>,
+    val gameSide: String
 )

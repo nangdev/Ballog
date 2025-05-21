@@ -1,6 +1,7 @@
 package com.ballog.mobile.data.service
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.util.Log
 import com.ballog.mobile.BallogApplication
 import com.ballog.mobile.data.api.MatchApi
@@ -15,16 +16,19 @@ import com.ballog.mobile.data.dto.MatchReportData
 import com.ballog.mobile.data.dto.MatchReportRequest
 import com.ballog.mobile.data.dto.QuarterReport
 import com.ballog.mobile.data.repository.MatchRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.*
 
 /**
- * 경기 리포트 데이터를 생성하고 서버에 전송하는 서비스
+ * 매치 리포트 데이터를 생성하고 서버에 전송하는 서비스
  */
 class MatchReportService(
     private val context: Context,
@@ -48,6 +52,30 @@ class MatchReportService(
 
     private val _dayMatchesList = MutableStateFlow<List<MatchItemDto>>(emptyList())
     val dayMatchesList: StateFlow<List<MatchItemDto>> = _dayMatchesList.asStateFlow()
+
+    private val _fieldCorners = MutableStateFlow<List<GpsLocation>>(emptyList())
+    val fieldCorners: StateFlow<List<GpsLocation>> = _fieldCorners.asStateFlow()
+
+    val prefs = context.getSharedPreferences("field_corners", Context.MODE_PRIVATE)
+
+    private val listener = SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+        if (key == "lat1" || key == "lon1" ||
+            key == "lat2" || key == "lon2" ||
+            key == "lat3" || key == "lon3" ||
+            key == "lat4" || key == "lon4" ||
+            key == "timestamp"
+        ) {
+            // 값이 바뀔 때마다 StateFlow 갱신
+            CoroutineScope(Dispatchers.IO).launch {
+                val fieldCorners = matchRepository.getFieldCorners()
+                _fieldCorners.value = fieldCorners ?: emptyList()
+            }
+        }
+    }
+
+    init {
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+    }
 
 
     fun addSelectedQuarter(id: String) {
@@ -82,8 +110,12 @@ class MatchReportService(
         val result = getDayMatches(days)
         _dayMatchesList.value = result
     }
+
+    fun clearCornerData(){
+        matchRepository.clearFieldCorners()
+    }
     /**
-     * 삼성 헬스 데이터를 가져와 경기 리포트를 생성하고 서버에 전송합니다.
+     * 삼성 헬스 데이터를 가져와 매치 리포트를 생성하고 서버에 전송합니다.
      */
     suspend fun createMatchReport(usedId: List<String>) {
         Log.d(TAG, "[createMatchReport] 호출됨")
@@ -100,13 +132,13 @@ class MatchReportService(
             return
         }
 
-
         // 2. 경기장 모서리 좌표 가져오기
         val fieldCorners = matchRepository.getFieldCorners()
         if (fieldCorners == null) {
             Log.e(TAG, "[createMatchReport] 경기장 좌표 데이터가 없습니다")
             return
         }
+        _fieldCorners.value = fieldCorners
         Log.d(TAG, "[createMatchReport] fieldCorners.size = ${fieldCorners.size}, fieldCorners = $fieldCorners")
 
         // 3. 쿼터별 리포트 데이터 생성
@@ -209,15 +241,6 @@ class MatchReportService(
         return exerciseList.mapNotNull { quarter ->
             try {
                 Log.d(TAG, "[createQuarterReports] quarter: $quarter")
-                // 1. 시간 범위에 맞는 운동 데이터 찾기
-                val exercise = findExerciseForTimeRange(
-                    exerciseList,
-                    quarter.startTime,
-                    quarter.endTime
-                ) ?: run {
-                    Log.e(TAG, "[createQuarterReports] 시간 범위에 맞는 운동 데이터 없음: start=${quarter.startTime}, end=${quarter.endTime}")
-                    return@mapNotNull null
-                }
 
                 // 2. 경기장 내 GPS 포인트만 필터링
                 Log.d(TAG, "[createQuarterReports] quarter.gpsPoints.size = ${quarter.gpsPoints.size}, quarter.gpsPoints = ${quarter.gpsPoints}")
@@ -229,14 +252,14 @@ class MatchReportService(
 
                 // 3. GPS 포인트를 그리드로 변환
                 val heatmapGrid = metricsCalculator.calculateHeatmap(quarter.gpsPoints)
-                Log.d(TAG, "[createQuarterReports] heatmapGrid 생성 완료: heatmapGrid=${heatmapGrid.map { it.toList() }}")
+                Log.d(TAG, "[createQuarterReports] heatmapGrid 생성 완료: heatmapGrid=${heatmapGrid.heatMap.map { it.toList() }}")
 
                 // 4. 쿼터 리포트 생성
                 val report = QuarterReport(
                     id = quarter.id,
                     date = quarter.date,
                     quarterNumber = null,
-                    gameSide = null,
+                    gameSide = heatmapGrid.gameSide,
                     gameReportData = GameReportData(
                         startTime = quarter.startTime,
                         endTime = quarter.endTime,
@@ -247,7 +270,7 @@ class MatchReportService(
                         sprint = quarter.sprintCount,
                         avgHeartRate = quarter.avgHeartRate,
                         maxHeartRate = quarter.maxHeartRate,
-                        heatmap = heatmapGrid.map { it.toList() }
+                        heatmap = heatmapGrid.heatMap.map { it.toList() }
                     )
                 )
                 Log.d(TAG, "[createQuarterReports] QuarterReport 생성: $report")

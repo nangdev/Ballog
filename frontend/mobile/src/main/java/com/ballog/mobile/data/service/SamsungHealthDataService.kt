@@ -207,17 +207,6 @@ class SamsungHealthDataService(private val context: Context) {
             val gpsPoints = extractGpsPoints(session)
             Log.d(TAG, "GPS 포인트 추출 완료 - ID: $uid, 포인트 수: ${gpsPoints.size}")
 
-            // GPS 포인트가 있는 경우에만 히트맵 계산
-            val heatmapData = if (gpsPoints.isNotEmpty()) {
-                Log.d(TAG, "히트맵 계산 시작 - ID: $uid")
-                val result = metricsCalculator.calculateHeatmap(gpsPoints)
-                Log.d(TAG, "히트맵 계산 완료 - ID: $uid")
-                result
-            } else {
-                Log.d(TAG, "GPS 포인트 없음 - 히트맵 계산 생략 - ID: $uid")
-                List(10) { List(16) { 0 } }
-            }
-
             // 운동 데이터 객체 생성 및 반환
             return Exercise(
                 id = uid,
@@ -235,8 +224,7 @@ class SamsungHealthDataService(private val context: Context) {
                 gpsPoints = gpsPoints,
                 liveDataSegments = liveDataSegments,
                 timestamp = sessionHelper.getStartTime()?.toEpochMilli() ?: 0L,
-                sprintCount = sprintCount,
-                heatmapData = heatmapData
+                sprintCount = sprintCount
             )
         } catch (e: Exception) {
             Log.e(TAG, "운동 데이터 변환 실패 - ID: $uid", e)
