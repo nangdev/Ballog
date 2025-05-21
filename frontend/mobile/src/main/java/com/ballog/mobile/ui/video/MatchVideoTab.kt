@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.ballog.mobile.data.dto.HighlightAddRequest
 import com.ballog.mobile.data.dto.HighlightUpdateRequest
+import com.ballog.mobile.ui.components.LoadingDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -234,7 +235,7 @@ fun MatchVideoTab(matchId: Int) {
                 )
                 // 하이라이트 추출 시작
                 isLoadingVideo = false
-                loadingMessage = "하이라이트를 추출하는 중입니다..."
+                loadingMessage = "하이라이트를\n추출하는 중입니다..."
             }
         } ?: Log.w("MatchVideoTab", "⛔ 영상 URI가 null입니다.")
     }
@@ -504,12 +505,9 @@ fun MatchVideoTab(matchId: Int) {
 
     // 로딩 다이얼로그
     if (showLoadingDialog) {
-        AlertDialog(
-            onDismissRequest = { },
-            title = { Text("처리 중") },
-            text = { Text(loadingMessage) },
-            confirmButton = { },
-            dismissButton = { }
+        LoadingDialog(
+            message = loadingMessage,
+            onDismiss = { /* 로딩 중에는 닫을 수 없음 */ }
         )
     }
 }
