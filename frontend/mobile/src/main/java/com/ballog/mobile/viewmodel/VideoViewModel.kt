@@ -45,7 +45,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
 
     private var _currentExoPlayer = MutableStateFlow<ExoPlayer?>(null)
     private val currentExoPlayer: StateFlow<ExoPlayer?> = _currentExoPlayer.asStateFlow()
-    
+
     // 하이라이트 카드에서 시크했는지 여부 추적
     private val _isSeekingFromHighlight = MutableStateFlow(false)
     val isSeekingFromHighlight: StateFlow<Boolean> = _isSeekingFromHighlight.asStateFlow()
@@ -77,14 +77,14 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                     val result = response.body()?.result
                     if (result != null) {
                         Log.d("VideoViewModel", "✅ 쿼터 영상 조회 성공 - 총 ${result.totalQuarters}쿼터")
-                        
+
                         // quarterList가 null인 경우 빈 리스트로 처리
                         val quarterList = result.quarterList
                         val quarterListStr = if (quarterList.isEmpty()) "비어 있음" else quarterList.toString()
                         Log.d("VideoViewModel", "📋 quarterList: $quarterListStr")
-                        
+
                         val mappedQuarterList = quarterList.map { it.toQuarterVideoData() }
-                        
+
                         _videoUiState.value = VideoUiState(
                             totalQuarters = result.totalQuarters,
                             quarterList = mappedQuarterList
@@ -128,11 +128,11 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                     Log.d("VideoViewModel", "✅ 오디오 파일 추출 성공")
                     Log.d("VideoViewModel", "📁 추출된 오디오 파일: ${audioFile.absolutePath}")
                     Log.d("VideoViewModel", "📊 오디오 파일 크기: ${audioFile.length() / 1024}KB")
-                    
+
                     try {
                         // 2. 시연용 하이라이트 데이터 생성
                         Log.d("VideoViewModel", "🎯 하이라이트 자동 추출 시작 (시연용)")
-                        
+
                         // 시연용 하이라이트 데이터
                         val mockHighlights = listOf(
                             ExtractedHighlight(
@@ -151,7 +151,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                                 confidence = 0.92f
                             )
                         )
-                        
+
                         Log.d("VideoViewModel", "✅ 하이라이트 추출 성공 (시연용)")
                         Log.d("VideoViewModel", "📋 추출된 하이라이트 수: ${mockHighlights.size}")
                         mockHighlights.forEachIndexed { index, highlight ->
@@ -164,10 +164,10 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                         // 현재 UI 상태 가져오기
                         val currentState = _videoUiState.value
                         val currentQuarterList = currentState.quarterList.toMutableList()
-                        
+
                         // 현재 쿼터의 데이터 찾기
                         val currentQuarterIndex = currentQuarterList.indexOfFirst { it.quarterNumber == quarterNumber }
-                        
+
                         // 하이라이트 데이터 변환
                         val highlightList = mockHighlights.mapIndexed { index, highlight ->
                             // HH:mm:ss -> mm:ss 변환
@@ -183,7 +183,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                             } else {
                                 "00:00"
                             }
-                            
+
                             val endParts = highlight.endTime.split(":")
                             val endTime = if (endParts.size >= 3) {
                                 // HH:mm:ss 형식인 경우 mm:ss로 변환
@@ -254,7 +254,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d("VideoViewModel", "🗑️ 영상 삭제 시작")
                 Log.d("VideoViewModel", "📋 삭제할 영상 ID: $videoId")
                 Log.d("VideoViewModel", "📋 매치 ID: $matchId")
-                
+
                 val token = "Bearer ${tokenManager.getAccessTokenBlocking()}"
                 val response = videoApi.deleteVideo(token, videoId)
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
@@ -262,7 +262,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                     // ExoPlayer 해제 신호 전송
                     _shouldReleasePlayer.value = true
                     Log.d("VideoViewModel", "🎵 ExoPlayer 해제 신호 전송")
-                    
+
                     Log.d("VideoViewModel", "🔄 영상 목록 새로고침 시작")
                     getMatchVideos(matchId)
                     Log.d("VideoViewModel", "✅ 영상 목록 새로고침 완료")
@@ -285,13 +285,13 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 Log.d("VideoViewModel", "➕ 하이라이트 추가 시작")
                 Log.d("VideoViewModel", "📋 요청 정보: videoId=${request.videoId}, name=${request.highlightName}, start=${request.startTime}, end=${request.endTime}")
-                
+
                 val token = "Bearer ${tokenManager.getAccessTokenBlocking()}"
                 val response = videoApi.addHighlight(token, request)
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
                     val result = response.body()?.result
                     Log.d("VideoViewModel", "✅ 하이라이트 추가 성공: highlightId=${result?.highlightId}")
-                    
+
                     // 전체 매치 데이터 새로고침
                     Log.d("VideoViewModel", "🔄 매치 데이터 새로고침 시작")
                     getMatchVideos(matchId)
@@ -317,12 +317,12 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 Log.d("VideoViewModel", "✏️ 하이라이트 수정 시작")
                 Log.d("VideoViewModel", "📋 수정 정보: highlightId=${request.highlightId}, name=${request.highlightName}, start=${request.startTime}, end=${request.endTime}")
-                
+
                 val token = "Bearer ${tokenManager.getAccessTokenBlocking()}"
                 val response = videoApi.updateHighlight(token, request)
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
                     Log.d("VideoViewModel", "✅ 하이라이트 수정 성공")
-                    
+
                     // 전체 매치 데이터 새로고침
                     Log.d("VideoViewModel", "🔄 매치 데이터 새로고침 시작")
                     getMatchVideos(matchId)
@@ -349,7 +349,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 Log.d("VideoViewModel", "🗑️ 하이라이트 삭제 시작")
                 Log.d("VideoViewModel", "📋 삭제할 하이라이트 ID: $highlightId")
                 Log.d("VideoViewModel", "📋 매치 ID: $matchId")
-                
+
                 val token = "Bearer ${tokenManager.getAccessTokenBlocking()}"
                 val response = videoApi.deleteHighlight(token, highlightId)
                 if (response.isSuccessful && response.body()?.isSuccess == true) {
@@ -380,27 +380,27 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
-                
+
                 Log.d("VideoViewModel", "🎵 오디오 추출 프로세스 시작")
                 Log.d("VideoViewModel", "📁 원본 비디오 파일: ${videoFile.absolutePath}")
                 Log.d("VideoViewModel", "📊 비디오 파일 크기: ${videoFile.length() / 1024}KB")
-                
+
                 // 1. 오디오 파일 추출
                 val audioFile = AudioUtils.extractAudioToM4a(context, videoFile)
                 if (audioFile != null) {
                     Log.d("VideoViewModel", "✅ 오디오 파일 추출 성공")
                     Log.d("VideoViewModel", "📁 추출된 오디오 파일: ${audioFile.absolutePath}")
                     Log.d("VideoViewModel", "📊 오디오 파일 크기: ${audioFile.length() / 1024}KB")
-                    
+
                     try {
                         // 2. 하이라이트 자동 추출 요청
                         Log.d("VideoViewModel", "🎯 하이라이트 자동 추출 시작")
                         Log.d("VideoViewModel", "📤 하이라이트 추출 요청: videoId=$videoId")
-                        
+
                         // 파일 파트
                         val audioRequestBody = audioFile.asRequestBody("audio/m4a".toMediaType())
                         val filePart = MultipartBody.Part.createFormData("file", audioFile.name, audioRequestBody)
-                        
+
                         // API 호출
                         val token = "Bearer ${tokenManager.getAccessTokenBlocking()}"
                         val extractionResponse = videoApi.extractHighlights(
@@ -408,11 +408,11 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                             file = filePart,
                             videoId = videoId
                         )
-                        
+
                         if (extractionResponse.isSuccessful && extractionResponse.body()?.isSuccess == true) {
                             Log.d("VideoViewModel", "✅ 하이라이트 추출 성공")
                             val highlights = extractionResponse.body()?.result ?: emptyList()
-                            
+
                             Log.d("VideoViewModel", "📋 추출된 하이라이트 수: ${highlights.size}")
                             highlights.forEachIndexed { index, highlight ->
                                 Log.d("VideoViewModel", "🎯 하이라이트 #${(index + 1)}")
@@ -473,7 +473,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     "00:00"
                 }
-                
+
                 val endParts = dto.endTime.split(":")
                 val endTime = if (endParts.size >= 3) {
                     // HH:mm:ss 형식인 경우 mm:ss로 변환
@@ -488,7 +488,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     "00:00"
                 }
-                
+
                 val highlight = HighlightUiState(
                     id = dto.highlightId.toString(),
                     title = dto.highlightName,
@@ -517,7 +517,7 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
     // "mm:ss" 형식의 특정 타임스탬프로 이동하는 메서드
     fun seekToTimestamp(timestamp: String) {
         val currentPlayer = _currentExoPlayer.value ?: return
-        
+
         try {
             // 타임스탬프 파싱
             val parts = timestamp.split(":")
@@ -525,25 +525,25 @@ class VideoViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("VideoViewModel", "❌ 타임스탬프 형식이 잘못되었습니다: $timestamp")
                 return
             }
-            
+
             val minutes = parts[0].trim().toIntOrNull() ?: 0
             val seconds = parts[1].trim().toIntOrNull() ?: 0
-            
+
             // 밀리초로 변환
             val positionMs = (minutes * 60 + seconds) * 1000L
-            
+
             // 하이라이트에서 호출된 시크임을 표시
             _isSeekingFromHighlight.value = true
-            
+
             // 해당 위치로 이동
             Log.d("VideoViewModel", "🎯 타임스탬프로 이동: $timestamp (${positionMs}ms)")
             currentPlayer.seekTo(positionMs)
-            
+
             // 플레이어가 보이고 재생 중인지 확인
             if (!currentPlayer.isPlaying) {
                 currentPlayer.play()
             }
-            
+
             // 짧은 지연 후 상태 초기화 (로딩이 충분히 오래 표시되도록)
             viewModelScope.launch {
                 kotlinx.coroutines.delay(300)
