@@ -1,0 +1,15 @@
+# IDE
+.idea/
+*.iml
+
+# Build
+/build/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AWS credentials
+aws.properties
+**/assets/aws.properties

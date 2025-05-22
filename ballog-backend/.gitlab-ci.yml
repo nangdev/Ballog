@@ -1,0 +1,73 @@
+stages:
+  - deploy
+
+variables:
+
+deploy:
+  stage: deploy
+  tags:
+    - ballog
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -i ~/.ssh/id_rsa ubuntu@$SERVER_IP "
+        cd /home/ubuntu/S12P31A404 && 
+        git fetch &&
+        git checkout $CI_COMMIT_REF_NAME &&
+        git pull &&
+        
+        # env.yml 파일을 올바른 위치에 생성 (src/main/resources 디렉토리)
+        mkdir -p backend/src/main/resources &&
+        echo "DB_URL: $DB_URL" > backend/src/main/resources/env.yml &&
+        echo "DB_USERNAME: $DB_USERNAME" >> backend/src/main/resources/env.yml &&
+        echo "DB_PASSWORD: $DB_PASSWORD" >> backend/src/main/resources/env.yml &&
+        
+        # Redis 환경변수 추가
+        echo "REDIS_HOST: $REDIS_HOST" >> backend/src/main/resources/env.yml &&
+        echo "REDIS_PORT: $REDIS_PORT" >> backend/src/main/resources/env.yml &&
+
+        echo "JWT_SECRET: $JWT_SECRET" >> backend/src/main/resources/env.yml &&
+        echo "JPA_DDL_AUTO: $JPA_DDL_AUTO" >> backend/src/main/resources/env.yml &&
+
+        # SMTP 환경변수 추가
+        echo "MAIL_HOST: $MAIL_HOST" >> backend/src/main/resources/env.yml &&
+        echo "MAIL_PORT: $MAIL_PORT" >> backend/src/main/resources/env.yml &&
+        echo "MAIL_USERNAME: $MAIL_USERNAME" >> backend/src/main/resources/env.yml &&
+        echo "MAIL_PASSWORD: $MAIL_PASSWORD" >> backend/src/main/resources/env.yml &&
+
+        echo "AWS_S3_REGION: $AWS_S3_REGION" >> backend/src/main/resources/env.yml &&
+        echo "AWS_S3_BUCKET: $AWS_S3_BUCKET" >> backend/src/main/resources/env.yml &&
+        echo "AWS_ACCESS_KEY: $AWS_ACCESS_KEY" >> backend/src/main/resources/env.yml &&
+        echo "AWS_SECRET_KEY: $AWS_SECRET_KEY" >> backend/src/main/resources/env.yml &&
+
+        echo "OPENAI_API_KEY: $OPENAI_API_KEY" >> backend/src/main/resources/env.yml &&
+        echo "OPENAI_API_URL: $OPENAI_API_URL" >> backend/src/main/resources/env.yml &&
+        echo "OPENAI_MODEL: $OPENAI_MODEL" >> backend/src/main/resources/env.yml &&
+
+        
+        # 환경 변수 파일 생성 (.env 파일은 docker-compose에서 사용)
+        echo "DB_URL=$DB_URL" > .env &&
+        echo "DB_USERNAME=$DB_USERNAME" >> .env &&
+        echo "DB_PASSWORD=$DB_PASSWORD" >> .env &&
+        
+        # 백엔드 서비스 재빌드 및 배포
+        echo "$CI_COMMIT_REF_NAME 브랜치: 백엔드 서비스 빌드 및 배포 중..." &&
+        docker-compose stop backend nginx &&
+        docker-compose rm -f backend nginx &&
+        docker-compose build backend nginx &&
+        docker-compose up -d backend nginx
+        
+        # 사용하지 않는 이미지 정리
+        echo "사용하지 않는 Docker 이미지 정리 중..." &&
+        docker image prune -af
+      "
+      
+  only:
+    - dev/be

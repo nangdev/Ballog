@@ -1,0 +1,79 @@
+spring:
+  config:
+    import: classpath:/env.yml
+  application:
+    name: ballog
+  security:
+    filter:
+      dispatcher-types: request
+  servlet:
+    multipart:
+      enabled: true
+      max-request-size: 300MB
+      max-file-size: 300MB
+
+  datasource:
+      url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        max-lifetime: 6000
+
+  jpa:
+    database: postgresql
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO}
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true                  # 인증 필요
+          starttls:
+            enable: true              # TLS 방식 사용
+            required: true
+          connectiontimeout: 10000    # 10초
+          timeout: 10000              # 읽기 타임아웃 10초
+          writetimeout: 10000         # 쓰기 타임아웃 10초
+    auth-code-expiration-ms: 300000   # 5분간 유효
+
+  cloud:
+    aws:
+      credentials:
+        access-key: ${AWS_ACCESS_KEY}
+        secret-key: ${AWS_SECRET_KEY}
+      region:
+        static: ${AWS_S3_REGION}
+      s3:
+        bucket: ${AWS_S3_BUCKET}
+      stack:
+        auto: false
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-expire-ms: 2592000000      # 15분(개발 단계에서는 1달)
+#  refresh-expire-ms: 2592000000     # refresh 토큰 만료 없음
+
+aws:
+  presign:
+    expirationMinutes: 60
+
+server:
+  servlet:
+    context-path: /api

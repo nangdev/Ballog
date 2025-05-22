@@ -1,0 +1,515 @@
+package com.ballog.mobile.ui.video
+
+import android.net.Uri
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.ballog.mobile.R
+import com.ballog.mobile.ui.components.BallogButton
+import com.ballog.mobile.ui.components.ButtonColor
+import com.ballog.mobile.ui.components.ButtonType
+import com.ballog.mobile.ui.components.DropDown
+import com.ballog.mobile.ui.theme.Gray
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ballog.mobile.viewmodel.VideoViewModel
+import android.graphics.Bitmap
+import android.media.MediaMetadataRetriever
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+
+@Composable
+fun HighlightContentSection(
+    videoUri: Uri?,
+    highlights: List<HighlightUiState>,
+    showPlayer: Boolean,
+    selectedQuarter: String,
+    expanded: Boolean,
+    onQuarterChange: (String) -> Unit,
+    onExpandedChange: (Boolean) -> Unit,
+    onAddClick: () -> Unit,
+    onEditClick: (HighlightUiState) -> Unit,
+    onDeleteVideo: () -> Unit,
+    onUploadClick: () -> Unit,
+    onTogglePlayer: () -> Unit,
+    quarterOptions: List<String>,
+    onHighlightClick: (String) -> Unit = {},
+    viewModel: VideoViewModel = viewModel()
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        VideoPlaceholderBox(
+            videoUri = videoUri,
+            showPlayer = showPlayer,
+            onTogglePlayer = onTogglePlayer,
+            selectedQuarter = selectedQuarter,
+            viewModel = viewModel
+        )
+
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Spacer(modifier = Modifier.height(20.dp))
+
+            QuarterDropDown(
+                selectedQuarter = selectedQuarter,
+                expanded = expanded,
+                onQuarterChange = onQuarterChange,
+                onExpandedChange = onExpandedChange,
+                quarterOptions = quarterOptions
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            if (videoUri == null) {
+                BallogButton(
+                    onClick = onUploadClick,
+                    type = ButtonType.BOTH,
+                    buttonColor = ButtonColor.GRAY,
+                    icon = painterResource(id = R.drawable.ic_upload),
+                    label = "영상 업로드",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                )
+            } else {
+                highlights.forEach { highlight ->
+                    HighlightCard(
+                        title = highlight.title,
+                        startTime = "${highlight.startMin}:${highlight.startSec}",
+                        endTime = "${highlight.endMin}:${highlight.endSec}",
+                        onEdit = { onEditClick(highlight) },
+                        onLike = { /* TODO */ },
+                        onClick = { onHighlightClick("${highlight.startMin}:${highlight.startSec}") }
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BallogButton(
+                    onClick = onAddClick,
+                    type = ButtonType.BOTH,
+                    buttonColor = ButtonColor.GRAY,
+                    icon = painterResource(id = R.drawable.ic_add),
+                    label = "구간 추가",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                HorizontalDivider(
+                    color = Gray.Gray300,
+                    thickness = 1.dp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BallogButton(
+                    onClick = onDeleteVideo,
+                    type = ButtonType.BOTH,
+                    buttonColor = ButtonColor.ALERT,
+                    icon = painterResource(id = R.drawable.ic_trash),
+                    label = "영상 삭제",
+                    modifier = Modifier.fillMaxWidth()
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun VideoPlaceholderBox(
+    videoUri: Uri?,
+    showPlayer: Boolean,
+    onTogglePlayer: () -> Unit,
+    selectedQuarter: String,
+    viewModel: VideoViewModel = viewModel()
+) {
+    val context = LocalContext.current
+    
+    // 플레이어 상태 관리
+    var playerReady by remember { mutableStateOf(false) }
+    var videoLoading by remember { mutableStateOf(false) }
+    var isVisibleState by remember { mutableStateOf(false) }
+    
+    // 사용자 시크 여부 추적
+    var isUserSeeking by remember { mutableStateOf(false) }
+    var lastPosition by remember { mutableStateOf(0L) }
+    var positionUpdateTime by remember { mutableStateOf(0L) }
+    
+    // 하이라이트에서 시크 중인지 추적
+    var isHighlightSeeking by remember { mutableStateOf(false) }
+    
+    // 디버깅 로그 - 컴포넌트 진입 시 상태 기록
+    LaunchedEffect(Unit) {
+        Log.d("VideoPlaceholderBox", "🔍 컴포넌트 진입 - URI: ${videoUri?.toString()?.take(20)}, showPlayer: $showPlayer")
+    }
+    
+    // 쿼터 변경 감지 - 쿼터 변경 시 강제 로딩 상태로 설정
+    var lastQuarter by remember { mutableStateOf("") }
+    
+    // 쿼터 변경 시 위치 초기화 필요 여부
+    var shouldResetPosition by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(selectedQuarter) {
+        if (lastQuarter.isNotEmpty() && lastQuarter != selectedQuarter) {
+            Log.d("VideoPlaceholderBox", "🔄 쿼터 변경 감지: $lastQuarter -> $selectedQuarter")
+            videoLoading = true
+            playerReady = false
+            shouldResetPosition = true
+        }
+        lastQuarter = selectedQuarter
+    }
+    
+    // 현재 처리 중인 URI 저장
+    var currentVideoUri by remember { mutableStateOf<Uri?>(null) }
+    
+    // 쿼터 변경 감지용 키
+    val videoKey = remember(videoUri, selectedQuarter) {
+        "${selectedQuarter}_${videoUri?.toString() ?: "empty"}_${System.currentTimeMillis()}"
+    }
+    
+    // 비디오 URI나 쿼터가 변경되면 isVisibleState 초기화
+    LaunchedEffect(videoKey) {
+        isVisibleState = false
+        
+        // 500ms 후에 강제로 isVisibleState 확인하고 여전히 false면 다시 로딩 트리거
+        kotlinx.coroutines.delay(500)
+        if (!isVisibleState && !videoLoading && videoUri != null) {
+            Log.d("VideoPlaceholderBox", "⚠️ 썸네일 로드 지연 감지 - 강제 리로드 트리거")
+            isVisibleState = false
+        }
+    }
+    
+    // showPlayer 상태가 false로 변경될 때(썸네일 모드로 전환될 때) isVisibleState 초기화
+    LaunchedEffect(showPlayer) {
+        if (!showPlayer) {
+            // 0.1초 후 isVisibleState를 false로 설정하여 AsyncImage를 강제로 다시 로드
+            kotlinx.coroutines.delay(100)
+            isVisibleState = false
+        }
+    }
+    
+    // 플레이어 초기화 - 쿼터나 비디오 URI가 변경될 때마다 새로 생성
+    val exoPlayer = remember(videoKey) {
+        Log.d("VideoPlaceholderBox", "🔄 ExoPlayer 재생성: $selectedQuarter, URI: ${videoUri?.toString()?.take(20)}...")
+        videoLoading = true
+        playerReady = false
+        shouldResetPosition = true
+        
+        ExoPlayer.Builder(context).build().apply {
+            playWhenReady = false
+            // 새 ExoPlayer 생성 시 항상 위치를 0으로 설정
+            seekTo(0)
+        }
+    }
+    
+    // ViewModel에 ExoPlayer 설정
+    LaunchedEffect(exoPlayer) {
+        viewModel.setCurrentExoPlayer(exoPlayer)
+    }
+    
+    // ExoPlayer 해제 관리
+    DisposableEffect(videoKey) {
+        onDispose {
+            Log.d("VideoPlaceholderBox", "🎵 ExoPlayer 해제: $selectedQuarter")
+            exoPlayer.release()
+        }
+    }
+    
+    // 플레이어 해제 요청 처리
+    val shouldReleasePlayer by viewModel.shouldReleasePlayer.collectAsState()
+    LaunchedEffect(shouldReleasePlayer) {
+        if (shouldReleasePlayer) {
+            exoPlayer.apply {
+                stop()
+                clearMediaItems()
+                release()
+            }
+            viewModel.resetPlayerRelease()
+            Log.d("VideoPlaceholderBox", "🎵 해제 요청에 의한 ExoPlayer 해제 완료")
+        }
+    }
+    
+    // 비디오 URI 변경 감지 및 처리
+    LaunchedEffect(videoKey) {
+        if (videoUri == null) {
+            return@LaunchedEffect
+        }
+        
+        if (videoUri == currentVideoUri && playerReady && !shouldResetPosition) {
+            Log.d("VideoPlaceholderBox", "⏭️ 같은 비디오 URI 감지, 로딩 스킵: $selectedQuarter")
+            return@LaunchedEffect
+        }
+        
+        currentVideoUri = videoUri
+        videoLoading = true
+        playerReady = false
+        isVisibleState = false
+        
+        Log.d("VideoPlaceholderBox", "🎬 비디오 로드 시작: 쿼터=$selectedQuarter, URI=${videoUri.toString().take(20)}...")
+        
+        exoPlayer.apply {
+            stop()
+            clearMediaItems()
+            setMediaItem(MediaItem.fromUri(videoUri))
+            // 미디어 아이템 설정 시 항상 위치를 0으로 초기화
+            seekTo(0)
+            prepare()
+        }
+    }
+    
+    // 플레이어 상태 리스너
+    LaunchedEffect(exoPlayer) {
+        exoPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                when (state) {
+                    Player.STATE_READY -> {
+                        // 하이라이트에서 시크 중이 아닌 경우에만 로딩 종료
+                        if (!isHighlightSeeking) {
+                            videoLoading = false
+                        } else {
+                            // 하이라이트 시크 후 로딩 완료 시 짧은 지연 후 로딩창 숨김
+                            kotlinx.coroutines.MainScope().launch {
+                                // 로딩창을 약간 더 유지
+                                kotlinx.coroutines.delay(300)
+                                videoLoading = false
+                                isHighlightSeeking = false
+                                Log.d("VideoPlaceholderBox", "🎯 하이라이트 시크 로딩 완료")
+                            }
+                        }
+                        
+                        playerReady = true
+                        isVisibleState = true
+                        
+                        // 로딩 완료 시 현재 시간 기록 (나중에 빠른 시간 내 위치 변경 감지에 사용)
+                        positionUpdateTime = System.currentTimeMillis()
+                        lastPosition = exoPlayer.currentPosition
+                        
+                        // 재생 준비 완료 시 항상 시작 위치로 이동
+                        if (shouldResetPosition) {
+                            exoPlayer.seekTo(0)
+                            shouldResetPosition = false
+                            Log.d("VideoPlaceholderBox", "⏮️ 비디오 위치 초기화: $selectedQuarter")
+                        }
+                        
+                        Log.d("VideoPlaceholderBox", "✅ 비디오 준비 완료: $selectedQuarter")
+                    }
+                    Player.STATE_BUFFERING -> {
+                        // 사용자 시크 중일 때는 로딩 인디케이터를 표시하지 않음
+                        // 하이라이트에서 시크 중일 때는 로딩 인디케이터를 표시함
+                        if (!isUserSeeking || isHighlightSeeking) {
+                            videoLoading = true
+                            if (isHighlightSeeking) {
+                                Log.d("VideoPlaceholderBox", "⏳ 비디오 버퍼링 중: $selectedQuarter (하이라이트 시크)")
+                            } else {
+                                Log.d("VideoPlaceholderBox", "⏳ 비디오 버퍼링 중: $selectedQuarter (프로그래밍 방식)")
+                            }
+                        } else {
+                            Log.d("VideoPlaceholderBox", "⏳ 비디오 버퍼링 중: $selectedQuarter (사용자 시크 - 로딩 표시 안함)")
+                        }
+                    }
+                    Player.STATE_ENDED -> {
+                        Log.d("VideoPlaceholderBox", "🔚 비디오 재생 완료: $selectedQuarter")
+                    }
+                    Player.STATE_IDLE -> {
+                        Log.d("VideoPlaceholderBox", "🔄 비디오 플레이어 초기화: $selectedQuarter")
+                    }
+                }
+            }
+            
+            // 재생 상태 변경 감지
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                Log.d("VideoPlaceholderBox", "🎮 재생 상태 변경: $isPlaying")
+            }
+            
+            // 플레이어 위치 변경 감지 (시크 포함)
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo, 
+                newPosition: Player.PositionInfo, 
+                reason: Int
+            ) {
+                // 재생 중이 아닐 때 발생한 위치 변화는 사용자의 시크로 간주
+                val currentTime = System.currentTimeMillis()
+                val timeDiff = currentTime - positionUpdateTime
+                
+                if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                    // 명시적 시크 이벤트
+                    isUserSeeking = true
+                    Log.d("VideoPlaceholderBox", "👆 사용자 시크 감지 (discontinuity): ${oldPosition.positionMs} → ${newPosition.positionMs}")
+                    
+                    // 짧은 지연 후 상태 초기화
+                    kotlinx.coroutines.MainScope().launch {
+                        kotlinx.coroutines.delay(500)
+                        isUserSeeking = false
+                    }
+                }
+                
+                // 다음 비교를 위해 현재 위치와 시간 업데이트
+                lastPosition = exoPlayer.currentPosition
+                positionUpdateTime = currentTime
+            }
+        })
+    }
+
+    // VideoViewModel에 사용자 시크 감지 메서드 추가
+    LaunchedEffect(viewModel) {
+        viewModel.isSeekingFromHighlight.collect { isFromHighlight ->
+            if (isFromHighlight) {
+                isUserSeeking = false // 하이라이트에서 호출한 경우 사용자 시크가 아님
+                isHighlightSeeking = true // 하이라이트에서 호출한 경우 하이라이트 시크임을 표시
+                videoLoading = true // 하이라이트에서 호출한 경우 로딩창 표시
+                Log.d("VideoPlaceholderBox", "🎯 하이라이트 카드에서 시크 호출 감지 - 로딩창 표시")
+            }
+        }
+    }
+
+    // 비디오 영역 UI
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .background(androidx.compose.ui.graphics.Color.Black)
+            .clickable(
+                enabled = videoUri != null && !videoLoading, // 로딩 중에는 클릭 비활성화
+                onClick = onTogglePlayer
+            )
+    ) {
+        if (videoUri == null) {
+            // 비디오가 없는 경우
+            return@Box
+        }
+        
+        // 비디오 콘텐츠 (플레이어 또는 썸네일)
+        if (showPlayer) {
+            // 플레이어 모드
+            AndroidView(
+                factory = {
+                    PlayerView(it).apply {
+                        player = exoPlayer
+                        useController = true
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                    }
+                },
+                modifier = Modifier.fillMaxSize(),
+                update = {
+                    it.player = exoPlayer
+                }
+            )
+        } else {
+            // 썸네일 모드
+            VideoThumbnail(
+                videoUri = videoUri,
+                selectedQuarter = selectedQuarter,
+                onThumbnailLoaded = { isVisibleState = true }
+            )
+        }
+        
+        // 로딩 인디케이터 - 비디오 로딩 중일 때 항상 표시 (플레이어 모드와 썸네일 모드 모두)
+        if (videoLoading) {
+            isVisibleState = false
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 1.0f)), // 완전 불투명 배경
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    strokeWidth = 3.dp
+                )
+            }
+        } else if (!showPlayer && !isVisibleState) {
+            // 로딩이 끝났지만 썸네일이 아직 로드되지 않은 경우 강제로 썸네일 로드 트리거
+            VideoThumbnail(
+                videoUri = videoUri,
+                selectedQuarter = selectedQuarter,
+                fallbackColor = androidx.compose.ui.graphics.Color.Black,
+                onThumbnailLoaded = { isVisibleState = true },
+                onThumbnailLoadFailed = { videoLoading = false }
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuarterDropDown(
+    selectedQuarter: String,
+    expanded: Boolean,
+    onQuarterChange: (String) -> Unit,
+    onExpandedChange: (Boolean) -> Unit,
+    quarterOptions: List<String>
+) {
+    DropDown(
+        items = quarterOptions,
+        selectedItem = selectedQuarter,
+        onItemSelected = onQuarterChange,
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+// 함수 끝에 유틸리티 확장 함수 추가
+private fun ImageRequest.Builder.placeholderOf(videoUri: Uri?): ImageRequest.Builder {
+    // 시스템 콘텐츠 프로바이더를 통한 비디오 URI인 경우에만 처리
+    if (videoUri?.scheme == "content") {
+        // 첫 번째 프레임을 미리 로드하는 설정 추가
+        this.size(width = 800, height = 450) // 16:9 비율의 적당한 크기
+    }
+    return this
+}
+
+/**
+ * 비디오 썸네일을 효율적으로 로드하는 컴포저블
+ * MediaMetadataRetriever와 AsyncImage를 함께 사용하여 다양한 방식으로 썸네일 획득 시도
+ */
+@Composable
+private fun VideoThumbnail(
+    videoUri: Uri?,
+    selectedQuarter: String,
+    fallbackColor: androidx.compose.ui.graphics.Color = androidx.compose.ui.graphics.Color.Transparent,
+    onThumbnailLoaded: () -> Unit = {},
+    onThumbnailLoadFailed: () -> Unit = {}
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(fallbackColor),
+        contentAlignment = androidx.compose.ui.Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.ic_video),
+            contentDescription = "비디오 아이콘",
+            modifier = Modifier.size(48.dp)
+        )
+    }
+    onThumbnailLoaded()
+}

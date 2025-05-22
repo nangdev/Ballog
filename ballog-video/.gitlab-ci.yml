@@ -1,0 +1,34 @@
+stages:
+  - deploy
+
+variables:
+
+deploy:
+  stage: deploy
+  tags:
+    - ballog
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+    - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh -i ~/.ssh/id_rsa ubuntu@$SERVER_IP "
+        cd /home/ubuntu/S12P31A404 && 
+        git fetch &&
+        git checkout $CI_COMMIT_REF_NAME &&
+        git pull &&
+        
+        # 영상 서버 재빌드 및 배포
+        echo "$CI_COMMIT_REF_NAME 브랜치: 영상 서버 빌드 및 배포 중..." &&
+        docker-compose stop video &&
+        docker-compose rm -f video &&
+        docker-compose build video &&
+        docker-compose up -d video
+      "
+  only:
+    - dev/video
