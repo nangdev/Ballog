@@ -42,6 +42,7 @@ import com.ballog.mobile.ui.user.LikedVideosScreen
 import com.ballog.mobile.ui.user.MyPageScreen
 import com.ballog.mobile.ui.user.ProfileEditScreen
 import com.ballog.mobile.ui.home.MatchDataReportScreen
+import com.ballog.mobile.viewmodel.UserViewModel
 
 private const val TAG = "MainScreen"
 
@@ -422,8 +423,10 @@ fun HomeTabScreen() {
         navController = navController,
         startDestination = "home"
     ) {
-        composable("home") {
+        composable("home") { backStackEntry ->
+            val userViewModel: UserViewModel = viewModel(backStackEntry)
             HomeScreen(
+                viewModel = userViewModel,
                 onNavigateToStatisticsPage = {
                     navController.navigate("statistics/${nickname}")
                 },
@@ -434,10 +437,15 @@ fun HomeTabScreen() {
             "statistics/{nickname}",
             arguments = listOf(navArgument("nickname") { type = NavType.StringType })
         ) { backStackEntry ->
+            val parentEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+            val userViewModel: UserViewModel = viewModel(parentEntry)
             val nicknameArg = backStackEntry.arguments?.getString("nickname") ?: ""
             MatchDataReportScreen(
                 nickname = nicknameArg,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                viewModel = userViewModel
             )
         }
     }
