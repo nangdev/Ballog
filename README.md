@@ -7,28 +7,30 @@
 ## 📱 앱 주요 화면
 
 ### 팀 정보 및 능력치 시각화
-![팀 정보 화면](image/team_page.jpg)
+<img src="image/team_page.png" alt="팀 정보 화면" width= "300" />
 
-### 경기 기록 및 분석
-![경기 데이터 화면](image/match_detail_data.jpg)
+### 경기 데이터
+<img src="image/match_detail_heatmap.png" alt="히트맵 화면" width= "300" />
+
+<img src="image/match_detail_data.png" alt="경기 데이터 화면" width= "300" />
+
 
 ### 매치 일정 관리
-![매치 일정 화면](image/match_schedule.jpg)
+<img src="image/match_schedule.png" alt="매치 일정 화면" width= "300" />
 
-### 경기 데이터 수집
-![데이터 수집 화면](image/watch_data_ready.jpg)
+### 경기 데이터 수집 및 저장
+<img src="image/watch_data_ready.png" alt="데이터 수집 화면" width= "300" />
 
-### 경기 데이터 저장
-![경기 데이터 저장](image/match_data_save.jpg)
+<img src="image/match_data_save.png" alt="경기 데이터 저장" width= "300" />
 
-### 경기장 히트맵
-![히트맵 화면](image/match_detail_heatmap.jpg)
+### 메인 프로필, 선수 카드, 플레이 스타일 분석
+<img src="image/main_page.png" alt="플레이어 화면" width= "300" />
 
-### 플레이어 프로필
-![플레이어 화면](image/main_page.jpg)
+<img src="image/player_card.png" alt="선수 카드" width= "300" />
 
-### 플레이 스타일 분석
-![플레이 스타일 화면](image/play_style.jpg)
+<img src="image/play_style.png" alt="플레이 스타일 화면" width= "300" />
+
+<img src="image/play_style_player.png" alt="유사 플레이어" width= "300" />
 
 ## 🧠 주요 기능
 
