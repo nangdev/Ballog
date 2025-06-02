@@ -9,19 +9,26 @@
 > ### 팀 정보 및 능력치 시각화
 <img src="image/team_page.png" alt="팀 정보 화면" width= "300" />
 
+<br><br>
+
 > ### 경기 데이터
 <img src="image/match_detail_heatmap.png" alt="히트맵 화면" width= "300" />
 
 <img src="image/match_detail_data.png" alt="경기 데이터 화면" width= "300" />
 
+<br><br>
 
 > ### 매치 일정 관리
 <img src="image/match_schedule.png" alt="매치 일정 화면" width= "300" />
+
+<br><br>
 
 > ### 경기 데이터 수집 및 저장
 <img src="image/watch_data_ready.png" alt="데이터 수집 화면" width= "300" />
 
 <img src="image/match_data_save.png" alt="경기 데이터 저장" width= "300" />
+
+<br><br>
 
 > ### 메인 프로필, 선수 카드, 플레이 스타일 분석
 <img src="image/main_page.png" alt="플레이어 화면" width= "300" />
