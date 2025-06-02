@@ -7,28 +7,28 @@
 ## 📱 앱 주요 화면
 
 ### 팀 정보 및 능력치 시각화
-![팀 정보 화면](images/team_page.png)
+![팀 정보 화면](image/team_page.png)
 
 ### 경기 기록 및 분석
-![경기 데이터 화면](images/match_detail_data.png)
+![경기 데이터 화면](image/match_detail_data.png)
 
 ### 매치 일정 관리
-![매치 일정 화면](images/match_schedule.png)
+![매치 일정 화면](image/match_schedule.png)
 
 ### 경기 데이터 수집
-![데이터 수집 화면](images/watch_data_ready.png)
+![데이터 수집 화면](image/watch_data_ready.png)
 
 ### 경기 데이터 저장
-![경기 데이터 저장](images/match_data_save.png)
+![경기 데이터 저장](image/match_data_save.png)
 
 ### 경기장 히트맵
-![히트맵 화면](images/match_detail_heatmap.png)
+![히트맵 화면](image/match_detail_heatmap.png)
 
 ### 플레이어 프로필
-![플레이어 화면](images/main_page.png)
+![플레이어 화면](image/main_page.png)
 
 ### 플레이 스타일 분석
-![플레이 스타일 화면](images/play_style.png)
+![플레이 스타일 화면](image/play_style.png)
 
 ## 🧠 주요 기능
 
