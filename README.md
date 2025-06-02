@@ -4,6 +4,32 @@
 
 **Ballog**는 스마트워치를 활용하여 풋살 경기 중 선수들의 데이터를 수집하고, 이를 분석하여 선수 능력치를 산출하고 맞춤형 피드백을 제공하는 서비스입니다. 경기 중 수집된 GPS 히트맵, 심박수, 스프린트 등의 데이터를 기반으로 공격력, 수비력, 스피드, 스태미나, 회복력 등의 능력치를 계산하고, AI를 활용해 유사한 플레이 스타일의 프로 선수를 추천합니다.
 
+## 📱 앱 주요 화면
+
+### 팀 정보 및 능력치 시각화
+![팀 정보 화면](images/team_page.png)
+
+### 경기 기록 및 분석
+![경기 데이터 화면](images/match_detail_data.png)
+
+### 매치 일정 관리
+![매치 일정 화면](images/match_schedule.png)
+
+### 경기 데이터 수집
+![데이터 수집 화면](images/watch_data_ready.png)
+
+### 경기 데이터 저장
+![경기 데이터 저장](images/match_data_save.png)
+
+### 경기장 히트맵
+![히트맵 화면](images/match_detail_heatmap.png)
+
+### 플레이어 프로필
+![플레이어 화면](images/main_page.png)
+
+### 플레이 스타일 분석
+![플레이 스타일 화면](images/play_style.png)
+
 ## 🧠 주요 기능
 
 ### 1. 경기 데이터 수집 및 분석
