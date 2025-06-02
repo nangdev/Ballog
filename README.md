@@ -39,6 +39,8 @@
 
 <img src="image/play_style_player.png" alt="유사 플레이어" width= "300" />
 
+<br><br>
+
 ## 🧠 주요 기능
 
 ### 1. 경기 데이터 수집 및 분석
